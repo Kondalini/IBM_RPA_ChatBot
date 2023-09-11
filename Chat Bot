@@ -1,0 +1,133 @@
+defVar --name selectedOptions --type String
+defVar --name Question --type String
+defVar --name tags --type String
+defVar --name answer --type String
+defVar --name answerSuccess --type Boolean
+defVar --name Context --type String
+defVar --name botQuestion --type String
+defVar --name ex --type Excel
+defVar --name dt --type DataTable
+defVar --name counter --type Numeric
+defVar --name language --type Language
+defVar --name userName --type String
+defVar --name options --type List --innertype String --value "[Bot ask questions,Bot answer  user\'s questions]"
+defVar --name newCollection --type List --innertype String
+defVar --name selectedAnswers --type String
+defVar --name getedItems --type String
+defVar --name filePath --type String
+defVar --name textReader --type TextFileReader
+defVar --name dtNew --type DataTable
+defVar --name counterNewDt --type Numeric
+defVar --name answersNew --type String
+defVar --name collectionA --type List --innertype String
+defVar --name deletedRows --type Numeric
+defVar --name deletedRow1 --type Numeric
+defVar --name iRows --type Numeric
+defVar --name gottenText --type String
+defVar --name messages --type Stack --innertype String
+defVar --name storageAdapter --type StorageAdapter
+defVar --name sqlConn --type DbConnection
+defVar --name path --type String
+defVar --name true --type Boolean
+defVar --name trueTimeOut --type Boolean
+defVar --name Score --type Numeric
+defVar --name TrueAnswers --type Boolean
+defVar --name listCorrectAnswers --type List --innertype String
+defVar --name countCorrectAnswers --type Numeric
+defVar --name listAllAnswers --type List --innertype String
+defVar --name countAllAnswers --type Numeric
+defVar --name count20 --type Numeric
+defVar --name indexCorrectAnswers --type Numeric
+createLanguage --culture "en-US" language=value
+//sqliteConnect --connectionString "Data Source =C:\\Users\\akrastev\\Downloads\\DB;Version=3;UseUTF16Encoding=True;" sqlConn=connection path=path true=success
+//createStorageAdapter --storageStrategy "Local" --dbConnection ${sqlConn} storageAdapter=storageAdapter
+botConnect --language ${language} --timedout SubTimeout --messages ${messages} --storageAdapter ${storageAdapter} --timeout "00:15:00"
+	botAskName --timeoutsub SubTimeout --language ${language} --text "Welcome! 👋 I\'m you virtual assistant! \r\nYou can ask me questions or I can ask you questions!\r\n\r\nLet\'s have a fun and get started, but firstly...\r\n\r\nWhat is your name?" --textformat "Markdown" --timeout "00:00:40" userName=first
+	botAskList --names ${options} --timeoutsub SubTimeout --language ${language} --text " ${userName}, you can ask me questions or I can ask you questions\r\n Select an option?" --textformat "Markdown" --timeout "00:00:40" selectedOptions=value
+	while --left "${tags}" --operator "Equal_To" --right "+closure" --negate
+		if --left "${selectedOptions}" --operator "Equal_To" --right "Bot answer  user\'s questions"
+			botAsk --language ${language} --text "What is your question?" --textformat "Markdown" --timeout "00:01:00" Question=value trueTimeOut=timedout
+			if --left "${trueTimeOut}" --operator "Is_True"
+				goSub --label SubTimeout
+				delay --timeout "00:00:03"
+				break
+			endIf
+			answerQuestion --kb kbIvaExtendedNew --version 2 --minimumscore 800 --evaluate  --options "UseSynonyms" --culture "en-US" --text "${Question}" answer=answer tags=tags Context=context answerSuccess=success
+			if --left "${tags}" --operator "Equal_To" --right "+ask"
+				botSay --language ${language} --text "${answer}" --textformat "Markdown"
+			elseIf --left "${tags}" --operator "Equal_To" --right "+not sure"
+				botSay --language ${language} --text "The answer is: \r\n\r\n${answer}, BUT keep in mind that it may Not be correct answer!" --textformat "Markdown"
+			elseIf --left "${tags}" --operator "Equal_To" --right "+answers"
+				botSay --language ${language} --text "The answer is: \r\n${answer} - That is the answers for question with multiple options. It Is NOT full anwer to question" --textformat "Markdown"
+			endIf
+		else
+			
+			excelOpen --file "C:\\Users\\akrastev\\OneDrive - Service Centrix Ltd\\Desktop\\chatbot\\kbIvaExtendedNewChatbotVer1.xlsx" ex=value
+			excelGetTable --file ${ex} --getfirstsheet  --entiretable  --hasheaders  dt=value iRows=rows
+			excelClose --file ${ex}
+			for --variable ${counter} --from 347 --to ${dt.Rows} --step 1
+				mapTableRow --dataTable ${dt} --row ${counter} --mappings "[{\"Name\":null,\"Number\":\"1\",\"Output\":\"${botQuestion}\"}]"
+				add --collection "${collectionA}" --value "${botQuestion}"
+				get --collection "${collectionA}" --index 1 getedItems=value
+				writeToFile --value "${getedItems}" --createrandomfile  --encoding "UTF8" filePath=value
+				openTextReader --share "None" --path "${filePath}" --encoding "Default" textReader=value
+				textReadTable --delimiter "ByCharacters" --characters "|" --file ${textReader} dtNew=value
+				removeEmpty --datastructure ${dtNew}
+				for --variable ${counterNewDt} --from 2 --to ${dtNew.Rows} --step 1
+					mapTableRow --dataTable ${dtNew} --row ${counterNewDt} --mappings "[{\"Name\":null,\"Number\":\"1\",\"Output\":\"${answersNew}\"}]"
+					if --left "${answersNew}" --operator "Ends_With" --right "."
+						getRegex --text "${answersNew}" --regexPattern "\\b[a-zA-Z]{1}\\b." --regexOptions "0" gottenText=value
+					endIf
+					if --left "${answersNew}" --operator "Equal_To" --right "${gottenText}" --negate
+						concatTexts --text "${gottenText}" --value "${answersNew}" answersNew=value
+						add --collection "${newCollection}" --value "${answersNew}"
+					endIf
+					deleteRows --indexes ${counterNewDt} --dataTable ${dtNew} deletedRows=changedrowscount
+					decrementVar --number ${counterNewDt}
+				next
+				botAskList --names ${newCollection} --timeoutsub SubTimeout --language ${language} --text "${botQuestion}\r\n------------------\r\n" --textformat "Markdown" --timeout "00:02:00" selectedAnswers=value
+				if --left "${trueTimeOut}" --operator "Is_True"
+					goSub --label SubTimeout
+				endIf
+				answerQuestion --kb kbIvaExtendedNew --version 2 --evaluate  --options "0" --text "${botQuestion} ${selectedAnswers}" answer=answer tags=tags
+				if --left "${tags}" --operator "Equal_To" --right "+not sure1"
+					if --left "${selectedAnswers}" --operator "Equal_To" --right "${answer}"
+						botSay --language ${language} --text "The answer is:\r\n${answer}, BUT keep in mind that may no be full or absolutely corect answer!!!" --textformat "Markdown"
+					elseIf --left "${selectedAnswers}" --operator "Equal_To" --right "${answer}" --negate
+						botSay --language ${language} --text "The answer is:\r\n\r\n${answer}" --textformat "Markdown"
+					endIf
+				endIf
+				if --left "${tags}" --operator "Equal_To" --right "+req"
+					if --left "${selectedAnswers}" --operator "Contains" --right "${answer}"
+						botSay --language ${language} --text "Correct answer:\r\n\r\n${answer}" --textformat "Markdown"
+						add --collection "${listCorrectAnswers}" --value "${answer}"
+					elseIf --left "${selectedAnswers}" --operator "Equal_To" --right "${answer}" --negate
+						botSay --language ${language} --text "The correct answer is:\r\n\r\n${answer}" --textformat "Markdown"
+					endIf
+					add --collection "${listAllAnswers}" --value "${answer}"
+				endIf
+				setVar --name "${collectionA}"
+				setVar --name "${newCollection}"
+				setVar --name "${gottenText}"
+				deleteRows --indexes 1 --dataTable ${dtNew} deletedRow1=changedrowscount
+				count --collection "${listCorrectAnswers}" countCorrectAnswers=value
+				count --collection "${listAllAnswers}" countAllAnswers=value
+				indexOf --value "${answer}" --collection "${listCorrectAnswers}" indexCorrectAnswers=value
+				if --left "${indexCorrectAnswers}" --operator "Equal_To" --right 20
+					botSay --language ${language} --text "Congratulations, ${userName}!!! \r\n👏\r\nYou answered correctly on 20 questions out of ${countAllAnswers}" --textformat "Markdown"
+				endIf
+				if --left "${indexCorrectAnswers}" --operator "Equal_To" --right 50
+					botSay --language ${language} --text "50 correct answers out of ${countAllAnswers}!!!  ${userName,} you are awesome!!!! \r\n Your reward is:\r\n🍀" --textformat "Markdown"
+				endIf
+			next
+		endIf
+	endWhile
+botDisconnect
+beginSub --name SubTimeout
+	botSay --language ${language} --text "Thank you for connecting me!\r\nHave a nice day!" --textformat "Markdown"
+	delay --timeout "00:00:03"
+	stopExecution --current
+endSub
+beginSub --name Congratulations
+	botSay --language ${language} --text "Congratulations, ${userName}!!! \r\n👏\r\nYou answered correctly on 20 questions out of ${countAllAnswers}" --textformat "Markdown"
+endSub

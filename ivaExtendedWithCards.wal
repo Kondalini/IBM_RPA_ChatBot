@@ -1,0 +1,82 @@
+Ä/defVar --name selectedOptions --type String
+defVar --name Question --type String
+defVar --name tags --type String
+defVar --name answer --type String
+defVar --name answerSuccess --type Boolean
+defVar --name userAnswerToBotQuestion --type String
+defVar --name Context --type String
+defVar --name botQuestion --type String
+defVar --name ex --type Excel
+defVar --name dt --type DataTable
+defVar --name counter --type Numeric
+defVar --name userAnswer --type String
+defVar --name trueUserAnswer --type Boolean
+defVar --name language --type Language
+defVar --name userName --type String
+defVar --name options --type List --innertype String --value "[ask a question,answer questions]"
+defVar --name newCollection --type List --innertype String
+defVar --name selectedAnswers --type String
+defVar --name getedItems --type String
+defVar --name filePath --type String
+defVar --name textReader --type TextFileReader
+defVar --name dtNew --type DataTable
+defVar --name counterNewDt --type Numeric
+defVar --name answersNew --type String
+defVar --name collectionA --type List --innertype String
+createLanguage --culture "en-US" language=value
+botConnect --language ${language}
+	botAskName --language ${language} --text "HI, what is your name?" --textformat "Markdown" --timeout "00:02:00" userName=first
+	botAskList --names ${options} --language ${language} --text "Hi ${userName}, Can I help you?" --textformat "Markdown" --timeout "00:02:00" selectedOptions=value
+	while --left "${tags}" --operator "Equal_To" --right "+closure" --negate 
+		if --left "${selectedOptions}" --operator "Equal_To" --right "answer a question"
+			botAsk --retry  --attempts 3 --retrytext "What is your question?" --language ${language} --text "What is your question?" --textformat "Markdown" --timeout "00:01:00" Question=value
+			answerQuestion --kb kbSertExamExtended --version 4 --minimumscore 800 --evaluate  --culture "en-US" --text "${Question}" answer=answer tags=tags Context=context answerSuccess=success
+			if --left "${tags}" --operator "Equal_To" --right "+ask"
+				botSay --language ${language} --text "${answer}" --textformat "Markdown"
+			elseIf --left "${tags}" --operator "Equal_To" --right "+not sure"
+				botSay --language ${language} --text "The answer is: ${answer}, BUT keep in mind that it may Not be correct answer!" --textformat "Markdown"
+			elseIf --left "${tags}" --operator "Equal_To" --right "+answers"
+				botSay --language ${language} --text "The answer is: ${answer} - That is the answers for question with multiple options. It Is NOT right anwer to question" --textformat "Markdown"
+			endIf
+			botAsk --retry  --attempts 3 --retrytext "What is your question?" --language ${language} --text "Any questions?" --textformat "Markdown" --timeout "00:01:00" Question=value
+		else
+			
+			excelOpen --file "C:\\Users\\akrastev\\OneDrive - Service Centrix Ltd\\Desktop\\dd.xlsx" ex=value
+			excelGetTable --file ${ex} --getfirstsheet  --entiretable  --hasheaders  dt=value
+			excelClose --file ${ex}
+			for --variable ${counter} --from 220 --to ${dt.Rows} --step 1
+				mapTableRow --dataTable ${dt} --row ${counter} --mappings "[{\"Name\":null,\"Number\":\"1\",\"Output\":\"${botQuestion}\"}]"
+				add --collection "${collectionA}" --value "${botQuestion}"
+				get --collection "${collectionA}" --index 1 getedItems=value
+				writeToFile --value "${getedItems}" --createrandomfile  --encoding "Default" --writeasnewline  filePath=value
+				openTextReader --share "None" --path "${filePath}" --encoding "Default" textReader=value
+				textReadTable --delimiter "ByCharacters" --characters "," --file ${textReader} dtNew=value
+				removeEmpty --datastructure ${dtNew}
+				for --variable ${counterNewDt} --from 2 --to ${dtNew.Rows} --step 1
+					mapTableRow --dataTable ${dtNew} --row ${counterNewDt} --mappings "[{\"Name\":null,\"Number\":\"1\",\"Output\":\"${answersNew}\"}]"
+					add --collection "${newCollection}" --value "${answersNew}"
+				next
+				botAskList --names ${newCollection} --language ${language} --text "${botQuestion}\r\n------------------\r\n Select one:" --textformat "Markdown" --timeout "00:02:00" selectedAnswers=value
+				answerQuestion --kb kbSertExamExtended --version 5 --evaluate  --culture "en-US" --text "${botQuestion} ${selectedAnswers}" answer=answer tags=tags
+				//mapTableToCard --dataTable ${dtCards} --titleColumn 1 --subtitleColumn 2 --textColumn 3 --thumbnailUrlColumn 4 --actionColumn 5 --actionValueColumn 6 cards=value
+				//mapTableToCardButtons --dataTable ${dtCards} --cardItems ${cards} --buttonActionColumn 7 --buttonTextColumn 8 --buttonValueColumn 9
+				//botAsk --language ${language} --text "${botQuestion}" --textformat "Markdown" --timeout "00:01:00" userAnswer=value trueUserAnswer=success
+				//chatAskCarousel --cards ${cards} --text "${botQuestion}\r\n------------------------\r\nSelect one:" --textformat "Markdown" --timeout "00:02:00" userResponse=value
+				if --left "${tags}" --operator "Equal_To" --right "+not sure1"
+					if --left "${answersNew}" --operator "Equal_To" --right "${answer}"
+						botSay --language ${language} --text "The answer is:\r\n${answer}, BUT keep in mind that may no be full or absolutely corect answer!!!" --textformat "Markdown"
+					elseIf --left "${answersNew}" --operator "Equal_To" --right "${answer}" --negate 
+						botSay --language ${language} --text "Wrong answer!\r\nThe correct answer is:\r\n${answer} BUT keep in mind that may no be the correct response!!!!" --textformat "Markdown"
+					endIf
+				endIf
+				if --left "${tags}" --operator "Equal_To" --right "+req"
+					if --left "${answersNew}" --operator "Contains" --right "${answer}"
+						botSay --language ${language} --text "The correct answer is:\r\n${answer}" --textformat "Markdown"
+					elseIf --left "${answersNew}" --operator "Equal_To" --right "${answer}" --negate 
+						botSay --language ${language} --text "Wrong answer!\r\nThe correct answer is:\r\n${answer}" --textformat "Markdown"
+					endIf
+				endIf
+			next
+		endIf
+	endWhile
+botDisconnect*23.0.4.0

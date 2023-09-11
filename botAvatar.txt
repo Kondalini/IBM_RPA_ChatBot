@@ -1,0 +1,33 @@
+.wc-message.wc-message-from-bot {
+background-image:url();
+background-repeat: no-repeat;
+background-size:30px;
+padding-left: 35px;
+}
+.wc-message-from-bot svg.wc-message-callout{
+padding-left:35px;
+}
+.wc-message-from.wc-mesage-from-bot {
+margin-left:43px;
+}
+
+{"botAvatarInitials":"RPA",
+"backgroundColor":"#C4C4C4"
+}
+
+JSON
+{
+  ".wc-message.wc-message-from-bot": {
+    "background-image": "url()",
+    "background-repeat": "no-repeat",
+    "background-size": "30px",
+    "padding-left": "35px"
+  },
+  ".wc-message-from-bot svg.wc-message-callout": {
+    "padding-left": "35px"
+  },
+  ".wc-message-from.wc-mesage-from-bot": {
+    "margin-left": "43px"
+  }
+}
+

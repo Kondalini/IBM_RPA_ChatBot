@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        #botDiv {
+            height: 38px;
+            position: fixed;
+            margin-left: 1100px;
+            bottom: 0;
+            z-index: 1000;
+            background-color: #fff;
+        }
+
+        #botTitleBar {
+            height: 38px;
+            width: 400px;
+            position: fixed;
+            cursor: pointer;
+        }
+
+        #minimizeButton {
+            position: absolute;
+            top: 5px;
+            right: 60px;
+            width: 20px;
+            height: 20px;
+            font-size: 16px;
+            background-color: transparent;
+            border: none;
+        }
+
+        #closeButton {
+            position: absolute;
+            top: 5px;
+            right: 20px;
+            width: 20px;
+            height: 20px;
+            font-size: 16px;
+            background-color: transparent;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div id='botDiv'>
+        <div id='botTitleBar'>Chat</div>
+        <button id='minimizeButton'>-</button>
+        <button id='closeButton'>X</button>
+        <iframe id="botIframe" width='400px' height='600px' src='https://eu1bot.wdgautomation.com/integration/ivaExtended'></iframe>
+    </div>
+
+    <script>
+        document.querySelector('body').addEventListener('click', function (e) {
+            if (e.target.matches('#botTitleBar')) {
+                var botDiv = document.querySelector('#botDiv');
+                botDiv.style.height = botDiv.style.height === '600px' ? '38px' : '600px';
+            } else if (e.target.matches('#minimizeButton')) {
+                var botDiv = document.querySelector('#botDiv');
+                botDiv.style.height = '38px';
+            } else if (e.target.matches('#closeButton')) {
+                var botDiv = document.querySelector('#botDiv');
+                botDiv.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

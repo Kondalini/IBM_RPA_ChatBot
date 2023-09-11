@@ -1,0 +1,8 @@
+<html>
+<head></head>
+<body>
+    <title>My Test Page</title>
+    <p>The body of my page.</p>
+     <iframe src='https://eu1bot.wdgautomation.com/integration/ivaExtended'  style='min-width: 300px; width: 30%;height:60%; min-height: 38px;'></iframe>
+    </body>
+</html>
